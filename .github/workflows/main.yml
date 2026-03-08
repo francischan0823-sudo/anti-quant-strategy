@@ -1,0 +1,30 @@
+name: Anti-Quant Strategy Monitor
+
+on:
+  schedule:
+    # 每周一 06:00 UTC (即北京时间 14:00)
+    - cron: '0 6 * * 1'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  run-strategy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install tushare pandas numpy tabulate
+
+      - name: Run Strategy
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          EMAIL_AUTH_CODE: ${{ secrets.EMAIL_AUTH_CODE }}
+        run: |
+          python strategy.py

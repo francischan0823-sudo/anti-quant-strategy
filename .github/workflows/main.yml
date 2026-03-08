@@ -20,11 +20,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install tushare pandas numpy tabulate
+          pip install tushare pandas numpy tabulate openai
 
       - name: Run Strategy
         env:
           TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
           EMAIL_AUTH_CODE: ${{ secrets.EMAIL_AUTH_CODE }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python strategy.py

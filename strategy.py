@@ -49,12 +49,44 @@ def get_bollinger_bands(df, n=20, k=2):
     df['lower'] = df['MA'] - (k * df['STD'])
     return df
 
-def check_sentiment(stock_name, industry):
+from openai import OpenAI
+
+def check_sentiment(stock_name, industry, date_range):
     """
-    检查该股票或行业在周末是否有重大利好或讨论热度。
+    利用 LLM 分析该股票或行业在指定日期范围内的舆情热度。
     """
-    # 实际生产中可以调用搜索工具，这里返回 True 模拟
-    return True
+    client = OpenAI() # 使用预配置的客户端
+    
+    query = f"{date_range} {stock_name} {industry} 财经新闻 利好 题材发酵"
+    # 注意：在 GitHub Actions 中，我们无法直接调用外部搜索工具，
+    # 但我们可以通过 LLM 的知识库或模拟搜索结果。
+    # 为了演示真实逻辑，这里构建一个 Prompt 让 LLM 评估该题材。
+    
+    prompt = f"""
+    请分析在 {date_range} 期间，关于“{stock_name}”所属的“{industry}”板块是否有显著的题材发酵或利好新闻。
+    
+    评价标准：
+    1. 是否有政策利好？
+    2. 是否有行业重大突破或新闻？
+    3. 社交媒体或财经媒体讨论热度是否显著上升？
+    
+    请给出 0-100 的评分，并简要说明理由。
+    格式：评分: [数字] | 理由: [简短描述]
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        content = response.choices[0].message.content
+        score_part = content.split('|')[0].replace('评分:', '').strip()
+        score = int(score_part)
+        reason = content.split('|')[1].replace('理由:', '').strip()
+        return score, reason
+    except Exception as e:
+        print(f"舆情分析出错: {e}")
+        return 50, "分析失败，默认中性"
 
 def select_stocks():
     friday, monday = get_trading_days()
@@ -115,17 +147,25 @@ def select_stocks():
                 stock_info = pro.stock_basic(ts_code=ts_code, fields='name,industry')
                 name = stock_info.iloc[0]['name']
                 industry = stock_info.iloc[0]['industry']
-                print(f"找到符合条件的股票: {name} ({ts_code})")
-                results.append({
-                    '代码': ts_code,
-                    '名称': name,
-                    '行业': industry,
-                    '周五收盘': row_friday['close'],
-                    '周一开盘': row_monday['open'],
-                    '周一收盘': row_monday['close'],
-                    '周一最低': row_monday['low'],
-                    '上轨线': round(row_monday['upper'], 2)
-                })
+                
+                # 增加舆情因子校验
+                date_range = f"{friday}至{monday}"
+                sentiment_score, reason = check_sentiment(name, industry, date_range)
+                
+                if sentiment_score >= 70: # 舆情评分阈值
+                    print(f"找到符合条件的股票(含舆情发酵): {name} ({ts_code}), 评分: {sentiment_score}")
+                    results.append({
+                        '代码': ts_code,
+                        '名称': name,
+                        '行业': industry,
+                        '周五收盘': row_friday['close'],
+                        '周一开盘': row_monday['open'],
+                        '周一收盘': row_monday['close'],
+                        '周一最低': row_monday['low'],
+                        '上轨线': round(row_monday['upper'], 2),
+                        '舆情评分': sentiment_score,
+                        '发酵理由': reason
+                    })
             else:
                 # 打印不符合的原因（可选，用于调试）
                 pass

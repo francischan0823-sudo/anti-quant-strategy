@@ -2,8 +2,8 @@ name: Anti-Quant Strategy Monitor
 
 on:
   schedule:
-    # 每周一 06:00 UTC (即北京时间 14:00)
-    - cron: '0 6 * * 1'
+    # 每个工作日（周一至周五）06:00 UTC (即北京时间 14:00)
+    - cron: '0 6 * * 1-5'
   workflow_dispatch: # 允许手动触发
 
 jobs:

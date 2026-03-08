@@ -56,10 +56,10 @@ def check_sentiment(stock_name, industry, date_range):
     # 为了演示真实逻辑，这里构建一个 Prompt 让 LLM 评估该题材。
     
     prompt = f"""
-    请分析在 {date_range} 期间，关于“{stock_name}”所属的“{industry}”板块是否有显著的题材发酵或利好新闻。
+    请分析在 {date_range} 期间，关于 A股 市场中“{stock_name}”及其所属的“{industry}”板块是否有显著的题材发酵或利好新闻。
     
     评价标准：
-    1. 是否有政策利好？
+    1. 是否有针对 A股 的政策利好？
     2. 是否有行业重大突破或新闻？
     3. 社交媒体或财经媒体讨论热度是否显著上升？
     
@@ -91,7 +91,9 @@ def select_stocks():
         return "未获取到前一交易日数据"
     
     # 筛选前一交易日涨幅大于5%的股票作为“异动”代表
-    active_stocks = df_prev[df_prev['pct_chg'] > 5]['ts_code'].tolist()
+    # 仅限 A股：通过后缀过滤 (.SH, .SZ, .BJ)
+    active_stocks = [code for code in df_prev[df_prev['pct_chg'] > 5]['ts_code'].tolist() 
+                     if code.endswith(('.SH', '.SZ', '.BJ'))]
     
     results = []
     

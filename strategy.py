@@ -21,11 +21,14 @@ pro = ts.pro_api()
 def get_trading_days():
     """获取最近的两个交易日：前一交易日和当前交易日"""
     today = datetime.datetime.now()
-    # 获取最近10天的交易日历
-    start_date = (today - datetime.timedelta(days=10)).strftime('%Y%m%d')
+    # 获取最近20天的交易日历，确保有足够的交易日
+    start_date = (today - datetime.timedelta(days=20)).strftime('%Y%m%d')
     end_date = today.strftime('%Y%m%d')
     df_cal = pro.trade_cal(exchange='', is_open='1', start_date=start_date, end_date=end_date)
     trading_days = df_cal['cal_date'].tolist()
+    
+    # 确保 trading_days 是按日期升序排列的
+    trading_days.sort()
     
     # 如果今天是交易日，则当前交易日是今天，前一交易日是上一个
     # 如果今天不是交易日，则取最后两个交易日
@@ -168,6 +171,8 @@ def select_stocks():
             
     return results
 
+from email.utils import formataddr
+
 def send_email(content):
     if not content:
         content = "今日未筛选出符合条件的个股。"
@@ -177,8 +182,8 @@ def send_email(content):
         content = "符合反量化策略的个股列表：\n\n" + df_res.to_markdown()
         
     msg = MIMEText(content, 'plain', 'utf-8')
-    msg['From'] = Header("量化监控助手", 'utf-8')
-    msg['To'] = Header("投资者", 'utf-8')
+    msg['From'] = formataddr(("量化监控助手", EMAIL_SENDER))
+    msg['To'] = formataddr(("投资者", EMAIL_RECEIVER))
     msg['Subject'] = Header("反量化策略选股结果", 'utf-8')
     
     try:
